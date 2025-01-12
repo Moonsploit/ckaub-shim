@@ -1,6 +1,9 @@
 # kvs
 KVS: Kernel Version Switcher, made to easily switch the tpm_kernver for Chromebooks.
 
+> [!IMPORTANT]  
+> This requires an unenrolled device.
+
 ## Build Instructions
 1) Clone the repo: <br />
 ```
