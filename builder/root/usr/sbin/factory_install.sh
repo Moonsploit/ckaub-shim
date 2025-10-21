@@ -174,8 +174,8 @@ while true; do
                 read -p "Press Enter to return to menu..."
                 continue
             fi
-            
             echo "Powerwash completed successfully!"
+            echo "DO NOT POWERWASH IN CHROMEOS! YOU MUST USE THE POWERWASH OPTION IN THIS SHIM INSTEAD, OTHERWISE YOUR DEVICE WILL BOOTLOOP! (bootloop is fixable by recovering)
             read -p "Press Enter to return to menu..."
             ;;
         3)
