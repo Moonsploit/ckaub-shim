@@ -1,5 +1,5 @@
 #!/bin/bash
-# ChromeOS Recovery Menu
+# daub script + powerwash
 # Based on work by HarryJarry1
 
 while true; do
