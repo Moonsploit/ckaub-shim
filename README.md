@@ -38,3 +38,5 @@ Kxtzownsu - creating kvs builder
 HarryTarryJarry - creating daub script
 
 Moon - implementing daub functionality into a shim
+
+deepseek - fixing script for the shim and cleaning up outputs
