@@ -112,70 +112,13 @@ while true; do
             # Clear stateful partition
             rm -rf /stateful/*
             umount /stateful
-            
+            echo "DO NOT POWERWASH IN CHROMEOS! YOU MUST USE THE POWERWASH OPTION IN THIS SHIM INSTEAD, OTHERWISE YOUR DEVICE WILL BOOTLOOP! (bootloop is fixable by recovering)"
             echo "Daub completed successfully!"
             read -p "Press Enter to return to menu..."
             ;;
         2)
-            # get_internal take from https://github.com/applefritter-inc/BadApple-icarus
-            get_internal() {
-                local ROOTDEV_LIST=$(cgpt find -t rootfs)
-                if [ -z "$ROOTDEV_LIST" ]; then
-                    echo "Could not find root devices."
-                    read -p "Press Enter to return to menu..."
-                    return 1
-                fi
-                local device_type=$(echo "$ROOTDEV_LIST" | grep -oE 'mmc|nvme|sda' | head -n 1)
-                case $device_type in
-                "mmc")
-                    intdis=/dev/mmcblk0
-                    intdis_prefix="p"
-                    ;;
-                "nvme")
-                    intdis=/dev/nvme0
-                    intdis_prefix="n"
-                    ;;
-                "sda")
-                    intdis=/dev/sda
-                    intdis_prefix=""
-                    ;;
-                *)
-                    echo "an unknown error occured. this should not have happened."
-                    read -p "Press Enter to return to menu..."
-                    return 1
-                    ;;
-                esac
-            }
-            
-            get_internal || continue
-            
-            echo "Detected internal disk: $intdis"
-            
-            # Create stateful directory if it doesn't exist
-            mkdir -p /stateful
-            
-            # Try to mount stateful partition
-            if ! mount "${intdis}${intdis_prefix}1" /stateful 2>/dev/null; then
-                mountlvm
-                if [ $? -ne 0 ]; then
-                    read -p "Press Enter to return to menu..."
-                    continue
-                fi
-            fi
-            
-            # Unmount first to format
-            umount /stateful 2>/dev/null
-            
-            # Format the stateful partition
-            echo "Formatting ${intdis}${intdis_prefix}1 with ext4..."
-            mkfs.ext4 "${intdis}${intdis_prefix}1" 2>/dev/null
-            if [ $? -ne 0 ]; then
-                echo "Failed to format stateful partition"
-                read -p "Press Enter to return to menu..."
-                continue
-            fi
+            mkfs.ext4 ${BLOCK_DEV}p1
             echo "Powerwash completed successfully!"
-            echo "DO NOT POWERWASH IN CHROMEOS! YOU MUST USE THE POWERWASH OPTION IN THIS SHIM INSTEAD, OTHERWISE YOUR DEVICE WILL BOOTLOOP! (bootloop is fixable by recovering)
             read -p "Press Enter to return to menu..."
             ;;
         3)
@@ -192,7 +135,6 @@ while true; do
     esac
 done
 
-# written mostly by HarryJarry1
 mountlvm(){
      vgchange -ay #active all volume groups
      volgroup=$(vgscan | grep "Found volume group" | awk '{print $4}' | tr -d '"')
