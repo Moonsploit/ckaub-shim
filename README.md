@@ -1,10 +1,10 @@
-# ckaub-shim
-ckaub as a shim
+# daub-shim
+daub as a shim
 ### Build Instructions
 1) Clone the repo: <br />
 ```
-git clone https://github.com/Moonsploit/ckaub-shim.git
-cd ckaub-shim/builder/
+git clone https://github.com/Moonsploit/daub-shim.git
+cd daub-shim/builder/
 ```
 
 2) Make sure you have the following dependicies installed: <br />
@@ -18,13 +18,13 @@ sudo bash builder.sh <raw-shim.bin>
 ```
 
 ### Prebuilts
-https://dl.snerill.org/ckaub
+https://dl.snerill.org/daub
 
-### Booting a ckaub shim
-After building or downloading a ckaub shim, download & open the [Chrome Recovery Utility](https://chromewebstore.google.com/detail/chromebook-recovery-utili/pocpnlppkickgojjlmhdmidojbmbodfm?pli=1). <br />
+### Booting a daub shim
+After building or downloading a daub shim, download & open the [Chrome Recovery Utility](https://chromewebstore.google.com/detail/chromebook-recovery-utili/pocpnlppkickgojjlmhdmidojbmbodfm?pli=1). <br />
 ![image](https://kxtz.dev/reco-util.png)
 <br />
-Press the settings icon in the top right, and press "Use Local Image". Select your ckaub shim, and then select your target usb drive or sd card.
+Press the settings icon in the top right, and press "Use Local Image". Select your daub shim, and then select your target usb drive or sd card.
 
 After it is done flashing, go to your target chromebook and enter developer mode. Then plug in the quicksilver drive and press ESC+REFRESH+POWER to boot the shim.
 
@@ -33,8 +33,8 @@ https://dl.fanqyxl.net/ChromeOS/Raw%20Shims/
 https://cros.download/shims
 
 ### CREDITS:
-Kxtzownsu - creating kvs builder, original idead for ckaub
+Kxtzownsu - creating kvs builder
 
-crosbreaker - creating ckaub
+HarryTarryJarry - creating daub script
 
-Moon - implementing ckaub functionality into a shim
+Moon - implementing daub functionality into a shim
