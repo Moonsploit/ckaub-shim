@@ -117,65 +117,7 @@ while true; do
             read -p "Press Enter to return to menu..."
             ;;
         2)
-            # Get internal disk
-            root_dev=$(rootdev -s 2>/dev/null)
-            if [ -z "$root_dev" ]; then
-                ROOTDEV_LIST=$(cgpt find -t rootfs 2>/dev/null)
-                if [ -z "$ROOTDEV_LIST" ]; then
-                    echo "Could not find root devices."
-                    read -p "Press Enter to return to menu..."
-                    continue
-                fi
-                intdis=$(echo "$ROOTDEV_LIST" | head -n1 | sed 's/p[0-9]*$//' | sed 's/n[0-9]*$//')
-            else
-                intdis=$(echo "$root_dev" | sed 's/p[0-9]*$//' | sed 's/n[0-9]*$//')
-            fi
-            
-            if echo "$intdis" | grep -q "mmcblk"; then
-                intdis_prefix="p"
-            elif echo "$intdis" | grep -q "nvme"; then
-                intdis_prefix="p"
-            else
-                intdis_prefix=""
-            fi
-            
-            echo "Detected internal disk: $intdis"
-            
-            # Create stateful directory if it doesn't exist
-            mkdir -p /stateful
-            
-            # Try to mount stateful partition
-            if ! mount "${intdis}${intdis_prefix}1" /stateful 2>/dev/null; then
-                # Check if LVM tools are available
-                if command -v vgchange >/dev/null 2>&1 && command -v vgscan >/dev/null 2>&1; then
-                    vgchange -ay 2>/dev/null
-                    volgroup=$(vgscan 2>/dev/null | grep "Found volume group" | awk '{print $4}' | tr -d '"')
-                    echo "found volume group: $volgroup"
-                    mount "/dev/$volgroup/unencrypted" /stateful 2>/dev/null
-                    if [ $? -ne 0 ]; then
-                        echo "couldn't mount p1 or lvm group. Please recover"
-                        read -p "Press Enter to return to menu..."
-                        continue
-                    fi
-                else
-                    echo "LVM tools not available. Cannot mount LVM volumes."
-                    read -p "Press Enter to return to menu..."
-                    continue
-                fi
-            fi
-            
-            # Unmount first to format
-            umount /stateful 2>/dev/null
-            
-            # Format the stateful partition
-            echo "Formatting ${intdis}${intdis_prefix}1 with ext4..."
-            mkfs.ext4 "${intdis}${intdis_prefix}1" 2>/dev/null
-            if [ $? -ne 0 ]; then
-                echo "Failed to format stateful partition"
-                read -p "Press Enter to return to menu..."
-                continue
-            fi
-            
+            mkfs.ext4 ${BLOCK_DEV}p1
             echo "Powerwash completed successfully!"
             read -p "Press Enter to return to menu..."
             ;;
