@@ -1,6 +1,6 @@
 #!/bin/bash
-# daub script + powerwash
-# Based on work by HarryJarry1
+# daub + powerwash
+# daub script by HarryTarryJarry
 
 while true; do
     clear
@@ -26,27 +26,38 @@ while true; do
         1)
             echo "Starting Daub..."
             
-            # Get internal disk
-            root_dev=$(rootdev -s 2>/dev/null)
-            if [ -z "$root_dev" ]; then
-                ROOTDEV_LIST=$(cgpt find -t rootfs 2>/dev/null)
+            # get_internal take from https://github.com/applefritter-inc/BadApple-icarus
+            get_internal() {
+                # get_largest_cros_blockdev does not work in BadApple.
+                local ROOTDEV_LIST=$(cgpt find -t rootfs) # thanks stella
                 if [ -z "$ROOTDEV_LIST" ]; then
                     echo "Could not find root devices."
                     read -p "Press Enter to return to menu..."
-                    continue
+                    return 1
                 fi
-                intdis=$(echo "$ROOTDEV_LIST" | head -n1 | sed 's/p[0-9]*$//' | sed 's/n[0-9]*$//')
-            else
-                intdis=$(echo "$root_dev" | sed 's/p[0-9]*$//' | sed 's/n[0-9]*$//')
-            fi
+                local device_type=$(echo "$ROOTDEV_LIST" | grep -oE 'mmc|nvme|sda' | head -n 1)
+                case $device_type in
+                "mmc")
+                    intdis=/dev/mmcblk0
+                    intdis_prefix="p"
+                    ;;
+                "nvme")
+                    intdis=/dev/nvme0
+                    intdis_prefix="n"
+                    ;;
+                "sda")
+                    intdis=/dev/sda
+                    intdis_prefix=""
+                    ;;
+                *)
+                    echo "an unknown error occured. this should not have happened."
+                    read -p "Press Enter to return to menu..."
+                    return 1
+                    ;;
+                esac
+            }
             
-            if echo "$intdis" | grep -q "mmcblk"; then
-                intdis_prefix="p"
-            elif echo "$intdis" | grep -q "nvme"; then
-                intdis_prefix="p"
-            else
-                intdis_prefix=""
-            fi
+            get_internal || continue
             
             echo "Detected internal disk: $intdis"
             
@@ -91,19 +102,8 @@ while true; do
             
             # Try to mount stateful partition
             if ! mount "${intdis}${intdis_prefix}1" /stateful 2>/dev/null; then
-                # Check if LVM tools are available
-                if command -v vgchange >/dev/null 2>&1 && command -v vgscan >/dev/null 2>&1; then
-                    vgchange -ay 2>/dev/null
-                    volgroup=$(vgscan 2>/dev/null | grep "Found volume group" | awk '{print $4}' | tr -d '"')
-                    echo "found volume group: $volgroup"
-                    mount "/dev/$volgroup/unencrypted" /stateful 2>/dev/null
-                    if [ $? -ne 0 ]; then
-                        echo "couldn't mount p1 or lvm group. Please recover"
-                        read -p "Press Enter to return to menu..."
-                        continue
-                    fi
-                else
-                    echo "LVM tools not available. Cannot mount LVM volumes."
+                mountlvm
+                if [ $? -ne 0 ]; then
                     read -p "Press Enter to return to menu..."
                     continue
                 fi
@@ -117,7 +117,64 @@ while true; do
             read -p "Press Enter to return to menu..."
             ;;
         2)
-            mkfs.ext4 ${BLOCK_DEV}p1
+            # get_internal take from https://github.com/applefritter-inc/BadApple-icarus
+            get_internal() {
+                local ROOTDEV_LIST=$(cgpt find -t rootfs)
+                if [ -z "$ROOTDEV_LIST" ]; then
+                    echo "Could not find root devices."
+                    read -p "Press Enter to return to menu..."
+                    return 1
+                fi
+                local device_type=$(echo "$ROOTDEV_LIST" | grep -oE 'mmc|nvme|sda' | head -n 1)
+                case $device_type in
+                "mmc")
+                    intdis=/dev/mmcblk0
+                    intdis_prefix="p"
+                    ;;
+                "nvme")
+                    intdis=/dev/nvme0
+                    intdis_prefix="n"
+                    ;;
+                "sda")
+                    intdis=/dev/sda
+                    intdis_prefix=""
+                    ;;
+                *)
+                    echo "an unknown error occured. this should not have happened."
+                    read -p "Press Enter to return to menu..."
+                    return 1
+                    ;;
+                esac
+            }
+            
+            get_internal || continue
+            
+            echo "Detected internal disk: $intdis"
+            
+            # Create stateful directory if it doesn't exist
+            mkdir -p /stateful
+            
+            # Try to mount stateful partition
+            if ! mount "${intdis}${intdis_prefix}1" /stateful 2>/dev/null; then
+                mountlvm
+                if [ $? -ne 0 ]; then
+                    read -p "Press Enter to return to menu..."
+                    continue
+                fi
+            fi
+            
+            # Unmount first to format
+            umount /stateful 2>/dev/null
+            
+            # Format the stateful partition
+            echo "Formatting ${intdis}${intdis_prefix}1 with ext4..."
+            mkfs.ext4 "${intdis}${intdis_prefix}1" 2>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "Failed to format stateful partition"
+                read -p "Press Enter to return to menu..."
+                continue
+            fi
+            
             echo "Powerwash completed successfully!"
             read -p "Press Enter to return to menu..."
             ;;
@@ -134,3 +191,14 @@ while true; do
             ;;
     esac
 done
+
+# written mostly by HarryJarry1
+mountlvm(){
+     vgchange -ay #active all volume groups
+     volgroup=$(vgscan | grep "Found volume group" | awk '{print $4}' | tr -d '"')
+     echo "found volume group:  $volgroup"
+     mount "/dev/$volgroup/unencrypted" /stateful || {
+         echo "couldnt mount p1 or lvm group.  Please recover"
+         return 1
+     }
+}
