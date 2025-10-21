@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # written mostly by HarryJarry1
 # get_stateful take from https://github.com/applefritter-inc/BadApple-icarus
 fail(){
