@@ -1,5 +1,5 @@
 #!/bin/bash
-# written mostly by HarryJarry1, cleaned up and fixed for a shim by deepseek
+# written mostly by HarryJarry1
 # get_stateful take from https://github.com/applefritter-inc/BadApple-icarus
 fail(){
     printf "$1\n"
