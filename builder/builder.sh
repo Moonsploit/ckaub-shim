@@ -23,16 +23,38 @@ echo "original builder by kxtz for kvs"
 # Function to download shim
 download_shim() {
     local board="$1"
-    local url="https://dl.cros.download/files/${board}/${board}.zip"
+    local primary_url="https://dl.cros.download/files/${board}/${board}.zip"
+    local fallback_url="https://dl.blobfox.org/shims/ChromeOS/shims/Raw/${board}.zip"
     local output_file="${board}.zip"
     
     # Send download message to stderr so it doesn't interfere with return value
     echo "Downloading shim for $board..." >&2
     
+    # Try primary URL first
     if command -v wget >/dev/null 2>&1; then
-        wget -q --show-progress -O "$output_file" "$url" || error "Failed to download shim for board: $board"
+        echo "Trying primary URL: $primary_url" >&2
+        if wget -q --show-progress -O "$output_file" "$primary_url"; then
+            echo "Successfully downloaded from primary URL" >&2
+        else
+            echo "Primary URL failed, trying fallback: $fallback_url" >&2
+            if wget -q --show-progress -O "$output_file" "$fallback_url"; then
+                echo "Successfully downloaded from fallback URL" >&2
+            else
+                error "Failed to download shim for board: $board from both URLs"
+            fi
+        fi
     elif command -v curl >/dev/null 2>&1; then
-        curl -L -o "$output_file" "$url" || error "Failed to download shim for board: $board"
+        echo "Trying primary URL: $primary_url" >&2
+        if curl -L -o "$output_file" "$primary_url"; then
+            echo "Successfully downloaded from primary URL" >&2
+        else
+            echo "Primary URL failed, trying fallback: $fallback_url" >&2
+            if curl -L -o "$output_file" "$fallback_url"; then
+                echo "Successfully downloaded from fallback URL" >&2
+            else
+                error "Failed to download shim for board: $board from both URLs"
+            fi
+        fi
     else
         error "Neither wget nor curl found. Please install one of them."
     fi
@@ -51,6 +73,7 @@ download_shim() {
         error "Downloaded file not found: $output_file"
     fi
 }
+
 # Check if first argument is a board name (download) or file path (existing shim)
 if [ "$1" == "" ]; then
     error "Usage: $0 <board_name|shim_file>"
