@@ -21,12 +21,12 @@ sudo bash builder.sh board
 https://dl.snerill.org/daub
 
 ### Booting a daub shim
-After building or downloading a daub shim, download & open the [Chrome Recovery Utility](https://chromewebstore.google.com/detail/chromebook-recovery-utili/pocpnlppkickgojjlmhdmidojbmbodfm?pli=1). <br />
+After downloading/building a daub shim, download & open the [Chrome Recovery Utility](https://chromewebstore.google.com/detail/chromebook-recovery-utili/pocpnlppkickgojjlmhdmidojbmbodfm?pli=1). <br />
 ![image](https://kxtz.dev/reco-util.png)
 <br />
-Press the settings icon in the top right, and press "Use Local Image". Select your daub shim, and then select your target usb drive or sd card.
+Click the Settings icon in the top right, and select Use Local Image. Select the quicksilver shim, and then select your usb drive/sd card.
 
-After it is done flashing, go to your target chromebook and enter developer mode. Then plug in the quicksilver drive and press ESC+REFRESH+POWER to boot the shim.
+After it is done flashing, go on your chromebook and enter developer mode, then go back to recovery mode and plug in the quicksilver drive and press esc+↻+⏻ to boot the shim.
 
 ### CREDITS:
 [Kxtzownsu](https://github.com/kxtzownsu) - creating kvs builder
