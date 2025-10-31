@@ -2,6 +2,9 @@
 
 SCRIPT_DIR=$(dirname "$0")
 VERSION=1
+SCRIPT_DIR=$(dirname "$0")
+export TMPDIR="$SCRIPT_DIR/../temp_build"
+mkdir -p "$TMPDIR"
 
 # Function to install dependencies
 install_dependencies() {
@@ -237,7 +240,7 @@ safesync
 squash_partitions "$LOOPDEV"
 safesync
 
-# Always enable RW mount (anti-skid removed)
+# Always enable RW mount
 enable_rw_mount "${LOOPDEV}p3"
 
 cleanup
