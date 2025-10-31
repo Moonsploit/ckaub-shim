@@ -17,7 +17,6 @@ source $SCRIPT_DIR/functions.sh
 echo "DAUB Shim Builder"
 echo "Before building, huge credits to the MercuryWorkshop team for their work on wax,"
 echo "original builder by kxtz for kvs"
-echo
 
 [ "$EUID" -ne 0 ] && error "Please run as root"
 
