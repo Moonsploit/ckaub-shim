@@ -17,9 +17,8 @@ while true; do
     echo ""
 
     echo "1) Block updates"
-    echo "2) Powerwash"
-    echo "3) Shell"
-    echo "4) Reboot"
+    echo "2) Shell"
+    echo "3) Reboot"
     read -p "Choose option: " choice
 
     case $choice in
@@ -112,20 +111,15 @@ while true; do
             # Clear stateful partition
             rm -rf /stateful/*
             umount /stateful
-            echo "DO NOT POWERWASH IN CHROMEOS! YOU MUST USE THE POWERWASH OPTION IN THIS SHIM INSTEAD, OTHERWISE YOUR DEVICE WILL BOOTLOOP! (bootloop is fixable by recovering)"
+            echo "DO NOT POWERWASH IN CHROMEOS! YOUR DEVICE WILL BOOTLOOP! (bootloop is fixable by recovering)"
             echo "Daub completed successfully!"
             read -p "Press Enter to return to menu..."
             ;;
         2)
-            mkfs.ext4 ${BLOCK_DEV}p1
-            echo "Powerwash completed successfully!"
-            read -p "Press Enter to return to menu..."
-            ;;
-        3)
             echo "Type 'exit' to go back to main menu"
             /bin/bash 2>/dev/null
             ;;
-        4)
+        3)
             reboot -f
             ;;
         *)
