@@ -9,12 +9,12 @@ cd daub-shim/builder/
 
 2) Make sure you have the following dependicies installed: <br />
 ```
-gdisk e2fsprogs
+gdisk e2fsprogs wget
 ```
 
 3) Run the builder: <br />
 ```
-sudo bash builder.sh <raw-shim.bin>
+sudo bash builder.sh board
 ```
 
 ### Prebuilts
@@ -28,10 +28,7 @@ Press the settings icon in the top right, and press "Use Local Image". Select yo
 
 After it is done flashing, go to your target chromebook and enter developer mode. Then plug in the quicksilver drive and press ESC+REFRESH+POWER to boot the shim.
 
-### RAW SHIMS:
-https://cros.download/shims
-
 ### CREDITS:
-Kxtzownsu - creating kvs builder
+[Kxtzownsu](https://github.com/kxtzownsu) - creating kvs builder
 
-HarryTarryJarry - creating daub script
+[HarryTarryJarry](https://github.com/HarryTarryJarry) - creating daub script
