@@ -35,5 +35,3 @@ https://cros.download/shims
 Kxtzownsu - creating kvs builder
 
 HarryTarryJarry - creating daub script
-
-Moon - implementing daub functionality into a shim
