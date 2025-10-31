@@ -7,12 +7,7 @@ git clone https://github.com/Moonsploit/daub-shim.git
 cd daub-shim/builder/
 ```
 
-2) Make sure you have the following dependicies installed: <br />
-```
-gdisk e2fsprogs wget
-```
-
-3) Run the builder: <br />
+2) Run the builder: <br />
 ```
 sudo bash builder.sh board
 ```
