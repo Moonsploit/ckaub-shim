@@ -29,7 +29,6 @@ Press the settings icon in the top right, and press "Use Local Image". Select yo
 After it is done flashing, go to your target chromebook and enter developer mode. Then plug in the quicksilver drive and press ESC+REFRESH+POWER to boot the shim.
 
 ### RAW SHIMS:
-https://dl.fanqyxl.net/ChromeOS/Raw%20Shims/
 https://cros.download/shims
 
 ### CREDITS:
