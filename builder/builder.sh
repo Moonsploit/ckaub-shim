@@ -3,6 +3,96 @@
 SCRIPT_DIR=$(dirname "$0")
 VERSION=1
 
+# Function to install dependencies
+install_dependencies() {
+    local missing_packages=()
+    
+    # Check which packages are missing
+    for pkg in "$@"; do
+        case "$pkg" in
+            "gdisk")
+                if ! command -v sgdisk >/dev/null 2>&1; then
+                    missing_packages+=("gdisk")
+                fi
+                ;;
+            "e2fsprogs")
+                if ! command -v resize2fs >/dev/null 2>&1 || ! command -v tune2fs >/dev/null 2>&1; then
+                    missing_packages+=("e2fsprogs")
+                fi
+                ;;
+            "wget")
+                if ! command -v wget >/dev/null 2>&1; then
+                    missing_packages+=("wget")
+                fi
+                ;;
+            "unzip")
+                if ! command -v unzip >/dev/null 2>&1; then
+                    missing_packages+=("unzip")
+                fi
+                ;;
+            "curl")
+                if ! command -v curl >/dev/null 2>&1; then
+                    missing_packages+=("curl")
+                fi
+                ;;
+            "numfmt")
+                if ! command -v numfmt >/dev/null 2>&1; then
+                    missing_packages+=("coreutils") # numfmt is part of coreutils
+                fi
+                ;;
+            "util-linux")
+                if ! command -v losetup >/dev/null 2>&1 || ! command -v fdisk >/dev/null 2>&1; then
+                    missing_packages+=("util-linux")
+                fi
+                ;;
+        esac
+    done
+    
+    if [ ${#missing_packages[@]} -eq 0 ]; then
+        return 0
+    fi
+    
+    log "Installing missing dependencies: ${missing_packages[*]}"
+    
+    # Detect package manager and install
+    if command -v apt >/dev/null 2>&1; then
+        # Ubuntu/Debian
+        apt update || return 1
+        apt install -y "${missing_packages[@]}" || return 1
+    elif command -v dnf >/dev/null 2>&1; then
+        # Fedora/RHEL/CentOS
+        dnf install -y "${missing_packages[@]}" || return 1
+    elif command -v yum >/dev/null 2>&1; then
+        # Older RHEL/CentOS
+        yum install -y "${missing_packages[@]}" || return 1
+    elif command -v pacman >/dev/null 2>&1; then
+        # Arch Linux
+        pacman -Sy --noconfirm "${missing_packages[@]}" || return 1
+    elif command -v zypper >/dev/null 2>&1; then
+        # openSUSE
+        zypper install -y "${missing_packages[@]}" || return 1
+    else
+        error "Could not detect package manager. Please install manually: ${missing_packages[*]}"
+    fi
+    
+    log "Dependencies installed successfully"
+}
+
+# Check and install required dependencies
+check_dependencies() {
+    log "Checking system dependencies..."
+    
+    # Required packages
+    local required_packages=("gdisk" "e2fsprogs" "unzip" "util-linux" "numfmt")
+    
+    # Check for at least one download tool
+    if ! command -v wget >/dev/null 2>&1 && ! command -v curl >/dev/null 2>&1; then
+        required_packages+=("wget") # Prefer wget, but could be curl instead
+    fi
+    
+    install_dependencies "${required_packages[@]}"
+}
+
 HOST_ARCH=$(lscpu | grep Architecture | awk '{print $2}')
 if [ $HOST_ARCH == "x86_64" ]; then
   CGPT="$SCRIPT_DIR/bins/cgpt.x86-64"
@@ -19,6 +109,9 @@ echo "Before building, huge credits to the MercuryWorkshop team for their work o
 echo "original builder by kxtz for kvs"
 
 [ "$EUID" -ne 0 ] && error "Please run as root"
+
+# Check and install dependencies before proceeding
+check_dependencies
 
 # Function to download shim
 download_shim() {
