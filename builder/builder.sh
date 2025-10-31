@@ -14,26 +14,84 @@ fi
 
 source $SCRIPT_DIR/functions.sh
 
-echo "KVS Shim Builder v$VERSION"
-echo "-=-=-=-=-=-=-=-=-=-"
-echo "gdisk, e2fsprogs required. must be ran as root"
-echo "-=-=-=-=-=-=-=-=-=-"
+echo "DAUB Shim Builder"
+echo "Before building, huge credits to the MercuryWorkshop team for their work on wax,"
+echo "original builder by kxtz for kvs"
+echo
+
 [ "$EUID" -ne 0 ] && error "Please run as root"
-[ "$1" == "" ] && error "No shim specified."
+
+# Function to download shim
+download_shim() {
+    local board="$1"
+    local url="https://dl.cros.download/files/${board}/${board}.zip"
+    local output_file="${board}.zip"
+    
+    # Send download message to stderr so it doesn't interfere with return value
+    echo "Downloading shim for $board..." >&2
+    
+    if command -v wget >/dev/null 2>&1; then
+        wget -q --show-progress -O "$output_file" "$url" || error "Failed to download shim for board: $board"
+    elif command -v curl >/dev/null 2>&1; then
+        curl -L -o "$output_file" "$url" || error "Failed to download shim for board: $board"
+    else
+        error "Neither wget nor curl found. Please install one of them."
+    fi
+    
+    # Extract the zip file quietly
+    if [ -f "$output_file" ]; then
+        unzip -q -o "$output_file" || error "Failed to extract shim zip file"
+        # Look for bin files in the extracted contents
+        local bin_file=$(find . -maxdepth 1 -name "*.bin" -o -name "*.img" | head -1)
+        if [ -n "$bin_file" ]; then
+            echo "$(basename "$bin_file")"
+        else
+            error "No bin/img file found in the downloaded shim"
+        fi
+    else
+        error "Downloaded file not found: $output_file"
+    fi
+}
+# Check if first argument is a board name (download) or file path (existing shim)
+if [ "$1" == "" ]; then
+    error "Usage: $0 <board_name|shim_file>"
+fi
+
+# Determine if we need to download or use existing file
+if [[ "$1" == *.* ]] && [ -f "$1" ]; then
+    # Argument has a file extension and file exists, treat as file path
+    IMG="$1"
+    SHIM_SOURCE="local"
+else
+    # Argument is a board name or non-existent file, download the shim
+    BOARD="$1"
+    SHIM_SOURCE="download"
+    
+    # Create a temporary directory for download
+    DOWNLOAD_DIR=$(mktemp -d)
+    cd "$DOWNLOAD_DIR" || error "Failed to enter download directory"
+    
+    # Download and extract the shim
+    IMG_FILE=$(download_shim "$BOARD")
+    IMG="$DOWNLOAD_DIR/$IMG_FILE"
+    
+    if [ ! -f "$IMG" ]; then
+        error "Downloaded shim file not found: $IMG"
+    fi
+    
+    cd - >/dev/null
+fi
 
 # Stateful is REALLY small, only about 45K with a full one.
 STATE_SIZE=$((1 * 1024 * 1024)) # 1MiB
 STATE_MNT="$(mktemp -d)"
 ROOT_MNT="$(mktemp -d)"
 LOOPDEV="$(losetup -f)"
-IMG="$1"
 
-echo "Before building, huge credits to the MercuryWorkshop team for their work on wax,"
-echo "some of this builder would have been impossible without it, at least with my disk knowledge"
-echo "-=-=-=-=-=-=-=-=-=-=-"
-echo "Press ENTER to continue building!"
-read -r
-echo "-=-=-=-=-=-=-=-=-=-=-"
+# Verify the image file exists and is accessible
+if [ ! -f "$IMG" ]; then
+    error "Image file not found: $IMG"
+fi
 
 #we need this before we re-create stateful
 STATE_START=$("$CGPT" show "$IMG" | grep "STATE" | awk '{print $1}')
@@ -64,16 +122,8 @@ safesync
 squash_partitions "$LOOPDEV"
 safesync
 
-log "Checking for anti-skid lock..."
-if [ "$2" == "--antiskid" ]; then
-  echo "Skid lock found!"
-  echo "Disabling RW mount.."
-  disable_rw_mount "${LOOPDEV}p3"
-else
-  echo "Skid lock disabled.."
-  echo "Enabling RW Mount.."
-  enable_rw_mount "${LOOPDEV}p3"
-fi
+# Always enable RW mount (anti-skid removed)
+enable_rw_mount "${LOOPDEV}p3"
 
 cleanup
 safesync
@@ -81,5 +131,17 @@ safesync
 truncate_image "$IMG"
 safesync
 
-log "Done building KVS!"
+# If we downloaded the shim, move the final image to current directory
+if [ "$SHIM_SOURCE" = "download" ]; then
+    log "Moving final image to current directory..."
+    FINAL_IMG="./daub_${BOARD}.bin"
+    mv "$IMG" "$FINAL_IMG"
+    # Clean up download directory
+    rm -rf "$DOWNLOAD_DIR"
+    log "Final image: $FINAL_IMG"
+else
+    log "Final image: $IMG"
+fi
+
+log "Done building DAUB!"
 trap - EXIT
