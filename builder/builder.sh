@@ -254,7 +254,7 @@ if [ "$SHIM_SOURCE" = "download" ]; then
     mv "$IMG" "$FINAL_IMG"
     # Clean up download directory
     rm -rf "$DOWNLOAD_DIR"
-    log "Final image: $FINAL_IMG"
+    log "Final image saved as $FINAL_IMG"
 else
     log "Final image saved as $IMG"
 fi
