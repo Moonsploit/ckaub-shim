@@ -2,7 +2,8 @@
 
 SCRIPT_DIR=$(dirname "$0")
 VERSION=1
-SCRIPT_DIR=$(dirname "$0")
+
+# Set custom temp directory with more space
 export TMPDIR="$SCRIPT_DIR/../temp_build"
 mkdir -p "$TMPDIR"
 
@@ -55,36 +56,30 @@ install_dependencies() {
         return 0
     fi
     
-    log "Installing missing dependencies: ${missing_packages[*]}"
-    
-    # Detect package manager and install
+    # Silent dependency installation
     if command -v apt >/dev/null 2>&1; then
         # Ubuntu/Debian
-        apt update || return 1
-        apt install -y "${missing_packages[@]}" || return 1
+        apt update >/dev/null 2>&1 || return 1
+        apt install -y "${missing_packages[@]}" >/dev/null 2>&1 || return 1
     elif command -v dnf >/dev/null 2>&1; then
         # Fedora/RHEL/CentOS
-        dnf install -y "${missing_packages[@]}" || return 1
+        dnf install -y "${missing_packages[@]}" >/dev/null 2>&1 || return 1
     elif command -v yum >/dev/null 2>&1; then
         # Older RHEL/CentOS
-        yum install -y "${missing_packages[@]}" || return 1
+        yum install -y "${missing_packages[@]}" >/dev/null 2>&1 || return 1
     elif command -v pacman >/dev/null 2>&1; then
         # Arch Linux
-        pacman -Sy --noconfirm "${missing_packages[@]}" || return 1
+        pacman -Sy --noconfirm "${missing_packages[@]}" >/dev/null 2>&1 || return 1
     elif command -v zypper >/dev/null 2>&1; then
         # openSUSE
-        zypper install -y "${missing_packages[@]}" || return 1
+        zypper install -y "${missing_packages[@]}" >/dev/null 2>&1 || return 1
     else
         error "Could not detect package manager. Please install manually: ${missing_packages[*]}"
     fi
-    
-    log "Dependencies installed successfully"
 }
 
 # Check and install required dependencies
 check_dependencies() {
-    log "Checking system dependencies..."
-    
     # Required packages
     local required_packages=("gdisk" "e2fsprogs" "unzip" "util-linux" "numfmt")
     
@@ -113,7 +108,7 @@ echo "original builder by kxtz for kvs"
 
 [ "$EUID" -ne 0 ] && error "Please run as root"
 
-# Check and install dependencies before proceeding
+# Check and install dependencies before proceeding (silently)
 check_dependencies
 
 # Function to download shim
@@ -123,12 +118,9 @@ download_shim() {
     local fallback_url="https://dl.blobfox.org/shims/ChromeOS/shims/Raw/${board}.zip"
     local output_file="${board}.zip"
     
-    # Send download message to stderr so it doesn't interfere with return value
-    echo "Downloading shim for $board..." >&2
-    
     # Try primary URL first
+    echo "Downloading shim from primary URL: $primary_url" >&2
     if command -v wget >/dev/null 2>&1; then
-        echo "Trying primary URL: $primary_url" >&2
         if wget -q --show-progress -O "$output_file" "$primary_url"; then
             echo "Successfully downloaded from primary URL" >&2
         else
@@ -140,7 +132,6 @@ download_shim() {
             fi
         fi
     elif command -v curl >/dev/null 2>&1; then
-        echo "Trying primary URL: $primary_url" >&2
         if curl -L -o "$output_file" "$primary_url"; then
             echo "Successfully downloaded from primary URL" >&2
         else
@@ -155,15 +146,19 @@ download_shim() {
         error "Neither wget nor curl found. Please install one of them."
     fi
     
-    # Extract the zip file quietly
+    # Extract the zip file
     if [ -f "$output_file" ]; then
+        echo "extracting ${output_file}..." >&2
         unzip -q -o "$output_file" || error "Failed to extract shim zip file"
+        
         # Look for bin files in the extracted contents
-        local bin_file=$(find . -maxdepth 1 -name "*.bin" -o -name "*.img" | head -1)
+        local bin_file=$(find . -maxdepth 1 -name "*.bin" | head -1)
         if [ -n "$bin_file" ]; then
-            echo "$(basename "$bin_file")"
+            # Delete the zip file to save space
+            rm -f "$output_file"
+            echo "$(basename "$bin_file")"  # Return just filename, not full path
         else
-            error "No bin/img file found in the downloaded shim"
+            error "No bin file found in the downloaded shim"
         fi
     else
         error "Downloaded file not found: $output_file"
@@ -185,18 +180,22 @@ else
     BOARD="$1"
     SHIM_SOURCE="download"
     
-    # Create a temporary directory for download
-    DOWNLOAD_DIR=$(mktemp -d)
+    # Create a temporary directory for download within our custom TMPDIR
+    DOWNLOAD_DIR=$(mktemp -d -p "$TMPDIR")
+    # Convert to absolute path by cd'ing to it and getting pwd
     cd "$DOWNLOAD_DIR" || error "Failed to enter download directory"
-    
+    DOWNLOAD_DIR=$(pwd)
+    cd - >/dev/null
+
     # Download and extract the shim
+    cd "$DOWNLOAD_DIR" || error "Failed to enter download directory: $DOWNLOAD_DIR"
     IMG_FILE=$(download_shim "$BOARD")
     IMG="$DOWNLOAD_DIR/$IMG_FILE"
-    
+
     if [ ! -f "$IMG" ]; then
         error "Downloaded shim file not found: $IMG"
     fi
-    
+
     cd - >/dev/null
 fi
 
@@ -240,7 +239,7 @@ safesync
 squash_partitions "$LOOPDEV"
 safesync
 
-# Always enable RW mount
+# Always enable RW mount (anti-skid removed)
 enable_rw_mount "${LOOPDEV}p3"
 
 cleanup
@@ -251,14 +250,13 @@ safesync
 
 # If we downloaded the shim, move the final image to current directory
 if [ "$SHIM_SOURCE" = "download" ]; then
-    log "Moving final image to current directory..."
-    FINAL_IMG="./daub_${BOARD}.bin"
+    FINAL_IMG="daub_${BOARD}.bin"
     mv "$IMG" "$FINAL_IMG"
     # Clean up download directory
     rm -rf "$DOWNLOAD_DIR"
     log "Final image: $FINAL_IMG"
 else
-    log "Final image: $IMG"
+    log "Final image saved as $IMG"
 fi
 
 log "Done building DAUB!"
