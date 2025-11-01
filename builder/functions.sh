@@ -23,7 +23,7 @@ safesync(){
 }
 
 log() {
-  printf "%b\n" "${COLOR_BLUE_B}Info: $*${COLOR_RESET}"
+  printf "%b\n" "$*"
 }
 
 
